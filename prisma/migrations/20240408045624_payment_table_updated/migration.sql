@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Doctor" ALTER COLUMN "appointmentFee" SET DATA TYPE DOUBLE PRECISION;

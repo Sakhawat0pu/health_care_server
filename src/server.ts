@@ -1,7 +1,7 @@
 import { Server } from "http";
 import app from "./app";
 import config from "./app/config";
-const port = 8000;
+import seedSuperAdmin from "./app/db";
 
 let server: Server;
 async function main() {
@@ -9,6 +9,7 @@ async function main() {
 		server = app.listen(config.port, () => {
 			console.log(`Listening on port ${config.port}`);
 		});
+		await seedSuperAdmin();
 	} catch (err) {
 		console.log(err);
 	}
