@@ -1,6 +1,9 @@
 import { JwtPayload } from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import prisma from "../../shared/prisma";
+import { TPaginationOptions } from "../../interface/pagination";
+import calculatePagination from "../../utils/calculatePagination";
+import { Prisma, UserRole } from "@prisma/client";
 
 const createAppointmentIntoDb = async (
 	patientInfo: JwtPayload,
@@ -89,6 +92,127 @@ const createAppointmentIntoDb = async (
 	return result;
 };
 
+const getMyAppointmentsFromDb = async (
+	userInfo: JwtPayload,
+	filterData: Record<string, unknown>,
+	options: TPaginationOptions
+) => {
+	const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
+	const andConditions: Prisma.AppointmentWhereInput[] = [];
+
+	if (userInfo.role === UserRole.PATIENT) {
+		andConditions.push({
+			patient: {
+				email: userInfo.email,
+			},
+		});
+	}
+
+	if (userInfo.role === UserRole.DOCTOR) {
+		andConditions.push({
+			doctor: {
+				email: userInfo.email,
+			},
+		});
+	}
+
+	if (Object.keys(filterData).length) {
+		andConditions.push({
+			AND: Object.keys(filterData).map((key) => ({
+				[key]: {
+					equals: filterData[key],
+				},
+			})),
+		});
+	}
+
+	const whereCondition: Prisma.AppointmentWhereInput = { AND: andConditions };
+
+	const result = await prisma.appointment.findMany({
+		where: whereCondition,
+		skip,
+		take: limit,
+		orderBy: {
+			[sortBy]: sortOrder,
+		},
+		include:
+			userInfo.role === UserRole.PATIENT
+				? {
+						doctor: true,
+						schedule: true,
+					}
+				: {
+						patient: {
+							include: {
+								patientHealthData: true,
+								medicalReport: true,
+							},
+						},
+						schedule: true,
+					},
+	});
+
+	const totalDocuments = await prisma.appointment.count({
+		//* total number of document may vary according to queries
+		where: whereCondition,
+	});
+	const totalPages = Math.ceil(totalDocuments / limit);
+
+	const meta = { page, limit, totalPages, totalDocuments };
+	return {
+		meta,
+		data: result,
+	};
+};
+
+const getAllAppointmentsFromDb = async (
+	filterData: Record<string, unknown>,
+	options: TPaginationOptions
+) => {
+	const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
+	const andConditions: Prisma.AppointmentWhereInput[] = [];
+
+	if (Object.keys(filterData).length) {
+		andConditions.push({
+			AND: Object.keys(filterData).map((key) => ({
+				[key]: {
+					equals: filterData[key],
+				},
+			})),
+		});
+	}
+
+	const whereCondition: Prisma.AppointmentWhereInput = { AND: andConditions };
+
+	const result = await prisma.appointment.findMany({
+		where: whereCondition,
+		skip,
+		take: limit,
+		orderBy: {
+			[sortBy]: sortOrder,
+		},
+		include: {
+			doctor: true,
+			patient: true,
+			schedule: true,
+		},
+	});
+
+	const totalDocuments = await prisma.appointment.count({
+		//* total number of document may vary according to queries
+		where: whereCondition,
+	});
+	const totalPages = Math.ceil(totalDocuments / limit);
+
+	const meta = { page, limit, totalPages, totalDocuments };
+	return {
+		meta,
+		data: result,
+	};
+};
+
 export const appointmentServices = {
 	createAppointmentIntoDb,
+	getMyAppointmentsFromDb,
+	getAllAppointmentsFromDb,
 };
