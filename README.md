@@ -4,6 +4,14 @@
 
 The Online HealthCare System is a comprehensive healthcare management application designed to streamline communication and appointment processes between patients, doctors, and administrators. This project utilizes modern technologies including Node.js, Express.js, Prisma ORM, PostgreSQL, Agora.io (WEB RTC), and Next.js (React Framework) for efficient and secure data management and real-time communication.
 
+## Technologies Used
+
+- Node.js
+- Express.js
+- Prisma ORM
+- PostgreSQL
+- Agora.io (WEB RTC)
+
 ## Key Features
 
 - **User Role Management**: Designed and implemented functionalities for admins, doctors, and patients with specific access controls.
@@ -17,14 +25,6 @@ The Online HealthCare System is a comprehensive healthcare management applicatio
 - **Prescription Generation and Delivery**: Enable doctors to generate detailed prescriptions with medical notes and instructions, delivered to patients via email.
 
 - **Real-time Video Consultations**: Enable seamless video consultations between doctors and patients using Agora.io's WEB RTC technology.
-
-## Technologies Used
-
-- Node.js
-- Express.js
-- Prisma ORM
-- PostgreSQL
-- Agora.io (WEB RTC)
 
 ## Key Responsibilities:
 
