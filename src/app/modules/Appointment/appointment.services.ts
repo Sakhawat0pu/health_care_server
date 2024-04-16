@@ -3,7 +3,14 @@ import { v4 as uuidv4 } from "uuid";
 import prisma from "../../shared/prisma";
 import { TPaginationOptions } from "../../interface/pagination";
 import calculatePagination from "../../utils/calculatePagination";
-import { Prisma, UserRole } from "@prisma/client";
+import {
+	AppointmentStatus,
+	PaymentStatus,
+	Prisma,
+	UserRole,
+} from "@prisma/client";
+import AppError from "../../errors/AppError";
+import httpStatus from "http-status";
 
 const createAppointmentIntoDb = async (
 	patientInfo: JwtPayload,
@@ -211,8 +218,93 @@ const getAllAppointmentsFromDb = async (
 	};
 };
 
+const changeAppointmentStatusFromDb = async (
+	id: string,
+	userInfo: JwtPayload,
+	payload: { status: AppointmentStatus }
+) => {
+	const appointmentData = await prisma.appointment.findUniqueOrThrow({
+		where: {
+			id,
+		},
+		include: {
+			doctor: true,
+		},
+	});
+
+	if (
+		userInfo.role === UserRole.DOCTOR &&
+		userInfo.email !== appointmentData.doctor.email
+	) {
+		throw new AppError(
+			httpStatus.FORBIDDEN,
+			"You are not allowed to change the status of another doctor's appointment."
+		);
+	}
+
+	const result = await prisma.appointment.update({
+		where: {
+			id: appointmentData.id,
+		},
+		data: payload,
+	});
+
+	return result;
+};
+
+const cancelUnpaidAppointments = async () => {
+	const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+	const unpaidAppointments = await prisma.appointment.findMany({
+		where: {
+			paymentStatus: PaymentStatus.UNPAID,
+			createdAt: {
+				lte: thirtyMinutesAgo,
+			},
+		},
+	});
+
+	const appointmentsToBeCancelled = unpaidAppointments.map(
+		(appointments) => appointments.id
+	);
+
+	await prisma.$transaction(async (client) => {
+		await client.payment.deleteMany({
+			where: {
+				appointmentId: {
+					in: appointmentsToBeCancelled,
+				},
+			},
+		});
+
+		await client.appointment.deleteMany({
+			where: {
+				id: {
+					in: appointmentsToBeCancelled,
+				},
+			},
+		});
+
+		for (const appointment of unpaidAppointments) {
+			await client.doctorSchedule.update({
+				where: {
+					doctorId_scheduleId: {
+						doctorId: appointment.doctorId,
+						scheduleId: appointment.scheduleId,
+					},
+				},
+				data: {
+					isBooked: false,
+				},
+			});
+		}
+	});
+};
+
 export const appointmentServices = {
 	createAppointmentIntoDb,
 	getMyAppointmentsFromDb,
 	getAllAppointmentsFromDb,
+	changeAppointmentStatusFromDb,
+	cancelUnpaidAppointments,
 };

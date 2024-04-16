@@ -49,12 +49,17 @@ const getAllDoctorFromDb = async (
 
 	const whereCondition: Prisma.DoctorWhereInput = { AND: andConditions };
 	const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
+
+	let doctorSortBy = sortBy;
+	if (sortBy === "createdAt") {
+		doctorSortBy = "averageRating";
+	}
 	const result = await prisma.doctor.findMany({
 		where: whereCondition,
 		skip,
 		take: limit,
 		orderBy: {
-			[sortBy]: sortOrder,
+			[doctorSortBy]: sortOrder,
 		},
 		include: {
 			doctorSpecialties: {

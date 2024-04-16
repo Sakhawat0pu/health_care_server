@@ -4,7 +4,7 @@ import prisma from "../../shared/prisma";
 import { SSLServices } from "../SSL/ssl.services";
 import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
-import { PaymentStatus } from "@prisma/client";
+import { AppointmentStatus, PaymentStatus } from "@prisma/client";
 
 const initPayment = async (appointmentId: string) => {
 	const paymentData = await prisma.payment.findFirstOrThrow({
@@ -66,6 +66,7 @@ const validatePayment = async (params: Record<string, unknown>) => {
 			},
 			data: {
 				paymentStatus: PaymentStatus.PAID,
+				status: AppointmentStatus.CANCELLED,
 			},
 		});
 	});
