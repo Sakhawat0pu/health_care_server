@@ -4,6 +4,7 @@ import config from "./app/config";
 import seedSuperAdmin from "./app/db";
 
 let server: Server;
+
 async function main() {
 	try {
 		server = app.listen(config.port, () => {
@@ -17,17 +18,21 @@ async function main() {
 
 main();
 
-process.on("unhandledRejection", () => {
-	console.log("Unhandled Rejection detected. The server is closing...");
+const exitHandler = () => {
 	if (server) {
 		server.close(() => {
 			process.exit(1);
 		});
 	}
 	process.exit(1);
+};
+
+process.on("unhandledRejection", () => {
+	console.log("Unhandled Rejection detected. The server is closing...");
+	exitHandler();
 });
 
 process.on("uncaughtException", () => {
 	console.log("Uncaught Exception detected. The server is closing...");
-	process.exit(1);
+	exitHandler();
 });

@@ -4,13 +4,23 @@ import handleDuplicateError from "../errors/handleDuplicateError";
 import AppError from "../errors/AppError";
 import handleZodError from "../errors/handleZodError";
 import { ZodError } from "zod";
+import { Prisma } from "@prisma/client";
 
 const globalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
 	let statusCode = 500;
 	let message = "Something went wrong!";
 	let error = err;
 
-	if (err instanceof ZodError) {
+	if (err instanceof Prisma.PrismaClientValidationError) {
+		statusCode = 403;
+		message = "Validation error";
+	} else if (err instanceof Prisma.PrismaClientKnownRequestError) {
+		if (err.code === "P2002") {
+			statusCode = 409;
+			message = "Unique constraint failed";
+			error = err.meta;
+		}
+	} else if (err instanceof ZodError) {
 		const simplifiedError = handleZodError(err);
 		statusCode = simplifiedError.statusCode;
 		message = simplifiedError.message;

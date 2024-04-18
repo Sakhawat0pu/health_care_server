@@ -10,6 +10,12 @@ import httpStatus from "http-status";
 
 const intervalTime = 30;
 
+const convertDatTimeToUTC = async (date: Date) => {
+	const offset = date.getTimezoneOffset() * 60 * 1000; // getTimezoneOffset() returns the difference, in minutes, between this date as evaluated in the UTC time zone, and the same date as evaluated in the local time zone -  here offset is in milliseconds
+
+	return new Date(date.getTime() + offset);
+};
+
 const createScheduleIntoDb = async (
 	payload: Record<string, any>
 ): Promise<Schedule[]> => {
@@ -43,8 +49,10 @@ const createScheduleIntoDb = async (
 
 		while (periodStartsAt < periodEndsAt) {
 			const singleSlotData = {
-				startDateTime: periodStartsAt,
-				endDateTime: addMinutes(periodStartsAt, intervalTime),
+				startDateTime: await convertDatTimeToUTC(periodStartsAt),
+				endDateTime: await convertDatTimeToUTC(
+					addMinutes(periodStartsAt, intervalTime)
+				),
 			};
 
 			const scheduleExists = await prisma.schedule.findFirst({

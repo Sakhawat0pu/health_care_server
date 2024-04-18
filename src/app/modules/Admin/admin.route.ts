@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.get(
 	"/",
-	// auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),d
+	auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
 	adminController.getAllAdmin
 );
 router.get(
